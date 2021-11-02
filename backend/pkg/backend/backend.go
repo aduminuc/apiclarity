@@ -131,7 +131,8 @@ func Run() {
 	restServer.Start(errChan)
 	defer restServer.Stop()
 
-	tracesServer := traces.CreateHTTPTracesServer(config.HTTPTracesPort, backend.handleHTTPTrace)
+	// TODO handle error
+	tracesServer, _ := traces.CreateHTTPTracesServer(config.HTTPTracesPort, backend.handleHTTPTrace)
 	tracesServer.Start(errChan)
 	defer tracesServer.Stop()
 
