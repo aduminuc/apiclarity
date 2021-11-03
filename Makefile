@@ -7,9 +7,11 @@ SHELL=/bin/bash
 
 # Project variables
 BINARY_NAME ?= apiclarity
+KONG_BINARY_NAME ?= kong
 DOCKER_REGISTRY ?= ghcr.io/apiclarity
 VERSION ?= $(shell git rev-parse HEAD)
 DOCKER_IMAGE ?= $(DOCKER_REGISTRY)/$(BINARY_NAME)
+KONG_DOCKER_IMAGE ?= $(DOCKER_REGISTRY)/$(KONG_BINARY_NAME)
 DOCKER_TAG ?= ${VERSION}
 
 # Dependency versions
@@ -30,6 +32,9 @@ ui: ## Build UI
 	@(echo "Building UI ..." )
 	@(cd ui; npm i ; npm run build; )
 	@ls -l ui/build  
+
+.PHONY: build
+build: backend
 
 .PHONY: backend
 backend: ## Build Backend
@@ -52,12 +57,20 @@ api: ## Generating API code
 	@(cd api; ./generate.sh)
 
 .PHONY: docker
-docker: ## Build Docker image 
+docker: docker-backend docker-kong
+
+.PHONY: docker-backend
+docker-backend: ## Build Docker image
 	@(echo "Building docker image ..." )
 	docker build --build-arg VERSION=${VERSION} \
 		--build-arg BUILD_TIMESTAMP=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		--build-arg COMMIT_HASH=$(shell git rev-parse HEAD) \
 		-t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+
+.PHONY: docker-kong
+docker-kong: ## Build Docker image
+	@(echo "Building kong docker image ..." )
+	docker build -t ${KONG_DOCKER_IMAGE}:${DOCKER_TAG} .
 
 .PHONY: push-docker
 push-docker: docker ## Build and Push Docker image
@@ -65,8 +78,15 @@ push-docker: docker ## Build and Push Docker image
 	docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
 
 .PHONY: test
-test: ## Run Unit Tests
+test: test-backend test-kong
+
+.PHONY: test-backend
+test-backend: ## Run Unit Tests
 	@(cd backend && go test ./pkg/...)
+
+.PHONY: test-kong
+test-kong: ## Run Unit Tests
+	@(cd plugins/gateway/kong && go test ./...)
 
 .PHONY: clean
 clean: clean-ui clean-backend ## Clean all build artifacts
@@ -89,6 +109,7 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 .PHONY: lint
 lint: bin/golangci-lint ## Run linter
 	cd backend && ../bin/golangci-lint run
+	cd plugins/gateway/kong && ../../../bin/golangci-lint run
 
 .PHONY: fix
 fix: bin/golangci-lint ## Fix lint violations

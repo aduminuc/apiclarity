@@ -16,16 +16,15 @@
 package traces
 
 import (
-	"github.com/apiclarity/apiclarity/plugins/api/server/models"
-	"github.com/apiclarity/apiclarity/plugins/api/server/restapi/operations"
-	"github.com/apiclarity/apiclarity/plugins/api/server/restapi"
-	"github.com/apiclarity/speculator/pkg/spec"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime/middleware"
-
 	log "github.com/sirupsen/logrus"
 
 	"github.com/apiclarity/apiclarity/backend/pkg/common"
+	"github.com/apiclarity/apiclarity/plugins/api/server/models"
+	"github.com/apiclarity/apiclarity/plugins/api/server/restapi"
+	"github.com/apiclarity/apiclarity/plugins/api/server/restapi/operations"
+	"github.com/apiclarity/speculator/pkg/spec"
 )
 
 type HandleTraceFunc func(trace *spec.SCNTelemetry) error
@@ -50,7 +49,7 @@ func CreateHTTPTracesServer(port int, traceHandleFunc HandleTraceFunc) (*HTTPTra
 	})
 
 	server := restapi.NewServer(api)
-	defer server.Shutdown()
+	defer func() { _ = server.Shutdown() }()
 
 	server.ConfigureFlags()
 	server.ConfigureAPI()
@@ -86,9 +85,7 @@ func (s *HTTPTracesServer) Stop() {
 	}
 }
 
-
 func (s *HTTPTracesServer) PostTelemetry(params operations.PostTelemetryParams) middleware.Responder {
-
 	telemetry := getTelemetry(params.Body)
 
 	if err := s.traceHandleFunc(telemetry); err != nil {
@@ -103,18 +100,17 @@ func (s *HTTPTracesServer) PostTelemetry(params operations.PostTelemetryParams) 
 
 func getTelemetry(telemetry *models.Telemetry) *spec.SCNTelemetry {
 	return &spec.SCNTelemetry{
-		RequestID:            telemetry.RequestID,
-		Scheme:               telemetry.Scheme,
-		DestinationAddress:   telemetry.DestinationAddress,
-		DestinationNamespace: telemetry.DestinationNamespace,
-		SourceAddress:        telemetry.SourceAddress,
-		SCNTRequest:          spec.SCNTRequest{
+		RequestID:          telemetry.RequestID,
+		Scheme:             telemetry.Scheme,
+		DestinationAddress: telemetry.DestinationAddress,
+		SourceAddress:      telemetry.SourceAddress,
+		SCNTRequest: spec.SCNTRequest{
 			Method:     telemetry.Request.Method,
 			Path:       telemetry.Request.Path,
 			Host:       telemetry.Request.Host,
 			SCNTCommon: convertCommon(telemetry.Request.Common),
 		},
-		SCNTResponse:         spec.SCNTResponse{
+		SCNTResponse: spec.SCNTResponse{
 			StatusCode: telemetry.Response.StatusCode,
 			SCNTCommon: convertCommon(telemetry.Response.Common),
 		},

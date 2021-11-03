@@ -1,24 +1,38 @@
+// Copyright © 2021 Cisco Systems, Inc. and its affiliates.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
 	"fmt"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
-	"github.com/prometheus/common/log"
 	"strconv"
 
 	"github.com/Kong/go-pdk"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	"github.com/apiclarity/apiclarity/plugins/api/client/client/operations"
 	"github.com/apiclarity/apiclarity/plugins/api/client/client"
+	"github.com/apiclarity/apiclarity/plugins/api/client/client/operations"
 	"github.com/apiclarity/apiclarity/plugins/api/client/models"
-	//"github.com/apiclarity/apiclarity/plugins/api/server/restapi/operations"
 )
 
 type Config struct {
 	apiClient *client.APIClarityPluginsTelemetriesAPI
 }
 
+// nolint: deadcode
 func New() interface{} {
 	cfg := client.DefaultTransportConfig()
 	cfg.WithHost("apiclarity.apiclarity:8080") // TODO configure it
@@ -30,20 +44,18 @@ func New() interface{} {
 }
 
 func (conf Config) Response(kong *pdk.PDK) {
-	kong.Log.Err("Response")
+	_ = kong.Log.Err("Response")
 
 	telemetry, err := createTelemetry(kong)
 	if err != nil {
-		log.Errorf("Failed to create telemetry. %v", err)
+		_ = kong.Log.Err("Failed to create telemetry. %v", err)
 		return
 	}
 
 	params := operations.NewPostTelemetryParams().WithBody(telemetry)
 
 	// TODO handle response of the async call?
-	go conf.apiClient.Operations.PostTelemetry(params)
-
-	return
+	go func() { _, _ = conf.apiClient.Operations.PostTelemetry(params) }()
 }
 
 func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
@@ -106,7 +118,7 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 	telemetry := models.Telemetry{
 		DestinationAddress:   ":" + strconv.Itoa(destPort), // TODO not sure we have destination ip
 		DestinationNamespace: "",
-		Request:              &models.Request{
+		Request: &models.Request{
 			Common: &models.Common{
 				TruncatedBody: false,
 				Body:          reqBody,
@@ -117,9 +129,9 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 			Method: method,
 			Path:   path,
 		},
-		RequestID:            "", // TODO from where
-		Response:             &models.Response{
-			Common:     &models.Common{
+		RequestID: "", // TODO from where
+		Response: &models.Response{
+			Common: &models.Common{
 				TruncatedBody: false,
 				Body:          resBody,
 				Headers:       createHeaders(resHeaders),
@@ -127,8 +139,8 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 			},
 			StatusCode: strconv.Itoa(statusCode),
 		},
-		Scheme:               scheme,
-		SourceAddress:        clientIP+":"+strconv.Itoa(clientPort),
+		Scheme:        scheme,
+		SourceAddress: clientIP + ":" + strconv.Itoa(clientPort),
 	}
 
 	return &telemetry, nil
@@ -139,21 +151,10 @@ func createHeaders(headers map[string][]string) []*models.Header {
 
 	// TODO support multiple values for a header
 	for header, values := range headers {
-		ret =  append(ret, &models.Header{
+		ret = append(ret, &models.Header{
 			Key:   header,
 			Value: values[0],
 		})
 	}
 	return ret
 }
-
-//const Version = "1.0.0"
-//const Priority = 1
-
-//func main() {
-//	if err := server.StartServer(New, Version, Priority); err != nil {
-//		fmt.Printf("error staring server: %v\n", err)
-//	}
-//}
-
-
