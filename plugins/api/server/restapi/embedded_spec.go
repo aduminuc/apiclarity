@@ -32,7 +32,6 @@ func init() {
     "title": "APIClarity Plugins telemetries API",
     "version": "1.0.0"
   },
-  "basePath": "/api",
   "paths": {
     "/telemetry": {
       "post": {
@@ -50,10 +49,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/responses/Success"
-            }
+            "description": "Success"
           },
           "default": {
             "$ref": "#/responses/UnknownError"
@@ -197,7 +193,6 @@ func init() {
     "title": "APIClarity Plugins telemetries API",
     "version": "1.0.0"
   },
-  "basePath": "/api",
   "paths": {
     "/telemetry": {
       "post": {
@@ -215,13 +210,7 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "Success",
-            "schema": {
-              "description": "success message",
-              "schema": {
-                "$ref": "#/definitions/SuccessResponse"
-              }
-            }
+            "description": "Success"
           },
           "default": {
             "description": "unknown error",

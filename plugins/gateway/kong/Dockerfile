@@ -1,15 +1,18 @@
-FROM kong/go-plugin-tool:2.0.4-alpine-latest AS builder
-RUN mkdir -p /tmp/plugin/
-COPY . /tmp/plugin/
-RUN cd /tmp/plugin/ && \
-   rm go.* && \
-   go get github.com/Kong/go-pdk && \
-   go mod init kong-go-plugin && \
-   go get -d -v github.com/Kong/go-pluginserver && \
-   go build github.com/Kong/go-pluginserver && \
-   go build -buildmode plugin plugin.go
+FROM golang:1.16.6-alpine AS builder
 
-FROM scratch
-WORKDIR /app
+RUN apk add --update --no-cache gcc g++
 
-COPY --from=builder ["/tmp/plugin/plugin.so", "/plugin.so"]
+WORKDIR /plugins
+COPY plugins/api ./api
+
+WORKDIR /plugins/gateway/kong
+COPY plugins/gateway/kong/go.* ./
+RUN go mod download
+
+COPY plugins/gateway/kong .
+# Build the plugin.
+RUN apk add make && make all
+
+FROM busybox
+#
+COPY --from=builder ["/plugins/gateway/kong/bin/kong-plugin", "/usr/local/bin/kong-plugin"]

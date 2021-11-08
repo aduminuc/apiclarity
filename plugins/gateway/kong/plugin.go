@@ -17,16 +17,29 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/Kong/go-pdk"
+	"github.com/Kong/go-pdk/server"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"strconv"
+	"strings"
 
 	"github.com/apiclarity/apiclarity/plugins/api/client/client"
 	"github.com/apiclarity/apiclarity/plugins/api/client/client/operations"
 	"github.com/apiclarity/apiclarity/plugins/api/client/models"
 )
+
+// TODO:
+// check that wasm still working!
+// pass the host to Config
+// Send http call async
+// Create a Makefile for kong
+// Run kong Makefile from APIClarity Makefile
+// Find out how to get destination address (and identify the service as internal)
+// Change image of init container to be the pushed image from ghcr registry
+// Create a README
+// add debug logs
+// Fix client.GetPort()
 
 type Config struct {
 	apiClient *client.APIClarityPluginsTelemetriesAPI
@@ -35,8 +48,7 @@ type Config struct {
 // nolint: deadcode
 func New() interface{} {
 	cfg := client.DefaultTransportConfig()
-	cfg.WithHost("apiclarity.apiclarity:8080") // TODO configure it
-	transport := httptransport.New(cfg.Host, cfg.BasePath, cfg.Schemes)
+	transport := httptransport.New("apiclarity.apiclarity:9000", "/api", cfg.Schemes)
 	apiClient := client.New(transport, strfmt.Default)
 	return &Config{
 		apiClient: apiClient,
@@ -44,36 +56,40 @@ func New() interface{} {
 }
 
 func (conf Config) Response(kong *pdk.PDK) {
-	_ = kong.Log.Err("Response")
-
 	telemetry, err := createTelemetry(kong)
 	if err != nil {
-		_ = kong.Log.Err("Failed to create telemetry. %v", err)
+		_ = kong.Log.Err(fmt.Sprintf("Failed to create telemetry. %v", err))
 		return
 	}
 
 	params := operations.NewPostTelemetryParams().WithBody(telemetry)
 
-	// TODO handle response of the async call?
-	go func() { _, _ = conf.apiClient.Operations.PostTelemetry(params) }()
+	_ = kong.Log.Err("Erez Sending telemetry ")
+	 _, err = conf.apiClient.Operations.PostTelemetry(params)
+	if err != nil {
+		_ = kong.Log.Err(fmt.Sprintf("Failed to post telemetry : %v", err))
+	}
 }
 
 func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
+	routedService, err := kong.Router.GetService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get routed serivce. %v", err)
+	}
 	clientIP, err := kong.Client.GetIp()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client ip. %v", err)
 	}
-	clientPort, err := kong.Client.GetPort()
+	//clientPort, err := kong.Client.GetPort()
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to get client port. %v", err)
+	//}
+	destPort := routedService.Port
+	host := routedService.Host
+
+	path, err := kong.Request.GetPath()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get client port. %v", err)
-	}
-	destPort, err := kong.Request.GetPort()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get destination port. %v", err)
-	}
-	host, err := kong.Request.GetHost()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get request host. %v", err)
+		return nil, fmt.Errorf("failed to get request path. %v", err)
 	}
 	reqBody, err := kong.Request.GetRawBody()
 	if err != nil {
@@ -83,14 +99,13 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get response body. %v", err)
 	}
+	//_ = kong.Log.Err(fmt.Sprintf("path: %v", path))
+	//_ = kong.Log.Err(fmt.Sprintf("response body: %v", resBody))
 	method, err := kong.Request.GetMethod()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get request method. %v", err)
 	}
-	path, err := kong.Request.GetPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get request path. %v", err)
-	}
+
 	statusCode, err := kong.ServiceResponse.GetStatus()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get response status code. %v", err)
@@ -116,7 +131,7 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 	}
 
 	telemetry := models.Telemetry{
-		DestinationAddress:   ":" + strconv.Itoa(destPort), // TODO not sure we have destination ip
+		DestinationAddress:   "10.116.193.79:" + strconv.Itoa(destPort), // TODO not sure we have destination ip
 		DestinationNamespace: "",
 		Request: &models.Request{
 			Common: &models.Common{
@@ -125,7 +140,7 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 				Headers:       createHeaders(reqHeaders),
 				Version:       fmt.Sprintf("%f", version),
 			},
-			Host:   host,
+			Host:   parseHost(host),
 			Method: method,
 			Path:   path,
 		},
@@ -140,10 +155,20 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 			StatusCode: strconv.Itoa(statusCode),
 		},
 		Scheme:        scheme,
-		SourceAddress: clientIP + ":" + strconv.Itoa(clientPort),
+		SourceAddress: clientIP + ":80",
 	}
 
 	return &telemetry, nil
+}
+
+func parseHost(kongHost string) string {
+	sp := strings.Split(kongHost, ".")
+
+	if len(sp) < 2 {
+		return kongHost
+	}
+
+	return sp[0] + "." + sp[1]
 }
 
 func createHeaders(headers map[string][]string) []*models.Header {
@@ -158,3 +183,11 @@ func createHeaders(headers map[string][]string) []*models.Header {
 	}
 	return ret
 }
+
+var Version = "0.2"
+var Priority = 1
+
+func main () {
+	_ = server.StartServer(New, Version, Priority)
+}
+

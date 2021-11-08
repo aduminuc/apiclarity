@@ -49,7 +49,7 @@ func CreateHTTPTracesServer(port int, traceHandleFunc HandleTraceFunc) (*HTTPTra
 	})
 
 	server := restapi.NewServer(api)
-	defer func() { _ = server.Shutdown() }()
+	//defer func() { _ = server.Shutdown() }()
 
 	server.ConfigureFlags()
 	server.ConfigureAPI()
@@ -93,9 +93,7 @@ func (s *HTTPTracesServer) PostTelemetry(params operations.PostTelemetryParams) 
 		log.Errorf("Error from trace handling func: %v", err)
 	}
 
-	return operations.NewPostTelemetryOK().WithPayload(&models.SuccessResponse{
-		Message: "Success",
-	})
+	return operations.NewPostTelemetryOK()
 }
 
 func getTelemetry(telemetry *models.Telemetry) *spec.SCNTelemetry {

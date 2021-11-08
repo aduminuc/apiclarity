@@ -70,7 +70,7 @@ docker-backend: ## Build Docker image
 .PHONY: docker-kong
 docker-kong: ## Build Docker image
 	@(echo "Building kong docker image ..." )
-	docker build -t ${KONG_DOCKER_IMAGE}:${DOCKER_TAG} .
+	docker build --file=./plugins/gateway/kong/Dockerfile -t ${KONG_DOCKER_IMAGE}:${DOCKER_TAG} .
 
 .PHONY: push-docker
 push-docker: docker ## Build and Push Docker image
@@ -95,6 +95,8 @@ clean: clean-ui clean-backend ## Clean all build artifacts
 clean-ui: 
 	@(rm -rf ui/build ; echo "UI cleanup done" )
 
+clean-plugins:
+
 .PHONY: clean-backend
 clean-backend: 
 	@(rm -rf bin ; echo "Backend cleanup done" )
@@ -107,8 +109,14 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 	@mv bin/golangci-lint $@
 
 .PHONY: lint
-lint: bin/golangci-lint ## Run linter
+lint: lint-backend lint-kong
+
+.PHONY: lint-backend
+lint-backend: bin/golangci-lint ## Run linter
 	cd backend && ../bin/golangci-lint run
+
+.PHONY: lint-kong
+lint-kong: bin/golangci-lint
 	cd plugins/gateway/kong && ../../../bin/golangci-lint run
 
 .PHONY: fix
@@ -123,7 +131,15 @@ bin/licensei-${LICENSEI_VERSION}:
 	@mv bin/licensei $@
 
 .PHONY: license-check
-license-check: bin/licensei ## Run license check
+license-check: license-check-backend license-check-kong
+
+.PHONY: license-check-kong
+license-check-kong: bin/licensei ## Run license check
+	bin/licensei header
+	cd plugins/gateway/kong && ../../../bin/licensei check --config=../.licensei.toml
+
+.PHONY: license-check-backend
+license-check-backend: bin/licensei ## Run license check
 	bin/licensei header
 	cd backend && ../bin/licensei check --config=../.licensei.toml
 

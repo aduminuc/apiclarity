@@ -21,11 +21,6 @@ const PostTelemetryOKCode int = 200
 swagger:response postTelemetryOK
 */
 type PostTelemetryOK struct {
-
-	/*
-	  In: Body
-	*/
-	Payload interface{} `json:"body,omitempty"`
 }
 
 // NewPostTelemetryOK creates PostTelemetryOK with default headers values
@@ -34,25 +29,12 @@ func NewPostTelemetryOK() *PostTelemetryOK {
 	return &PostTelemetryOK{}
 }
 
-// WithPayload adds the payload to the post telemetry o k response
-func (o *PostTelemetryOK) WithPayload(payload interface{}) *PostTelemetryOK {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the post telemetry o k response
-func (o *PostTelemetryOK) SetPayload(payload interface{}) {
-	o.Payload = payload
-}
-
 // WriteResponse to the client
 func (o *PostTelemetryOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
-	}
 }
 
 /*PostTelemetryDefault unknown error
