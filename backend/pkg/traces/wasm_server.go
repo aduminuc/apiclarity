@@ -47,7 +47,7 @@ func CreateWasmHTTPTracesServer(port int, traceHandleFunc HandleTraceFunc) *Wasm
 }
 
 func (s *WasmHTTPTracesServer) Start(errChan chan struct{}) {
-	log.Errorf("Starting traces server")
+	log.Infof("Starting wasm traces server")
 
 	go func() {
 		if err := s.server.ListenAndServe(); err != nil {
@@ -78,7 +78,6 @@ func readHTTPTraceBodyData(req *http.Request) (*spec.SCNTelemetry, error) {
 }
 
 func (s *WasmHTTPTracesServer) httpTracesHandler(w http.ResponseWriter, r *http.Request) {
-	log.Errorf("httpTracesHandler")
 	trace, err := readHTTPTraceBodyData(r)
 	if err != nil || trace == nil {
 		log.Errorf("Invalid trace. err=%v, trace=%+s", err, r.Body)

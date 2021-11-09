@@ -30,13 +30,13 @@ import (
 )
 
 // TODO:
-// check that wasm still working!
-// pass the host to Config
+// check that wasm still working! - opened a separate server for the wasm
+// pass the host to Config - not sure I can do this
 // Send http call async
 // Create a Makefile for kong
 // Run kong Makefile from APIClarity Makefile
 // Find out how to get destination address (and identify the service as internal)
-// Change image of init container to be the pushed image from ghcr registry
+// Change image of init container to be the pushed image from ghcr registry - changed
 // Create a README
 // add debug logs
 // Fix client.GetPort()
@@ -64,11 +64,13 @@ func (conf Config) Response(kong *pdk.PDK) {
 
 	params := operations.NewPostTelemetryParams().WithBody(telemetry)
 
-	_ = kong.Log.Err("Erez Sending telemetry ")
-	 _, err = conf.apiClient.Operations.PostTelemetry(params)
-	if err != nil {
-		_ = kong.Log.Err(fmt.Sprintf("Failed to post telemetry : %v", err))
-	}
+	go func() {
+		_, err = conf.apiClient.Operations.PostTelemetry(params)
+		if err != nil {
+			_ = kong.Log.Err(fmt.Sprintf("Failed to post telemetry : %v", err))
+		}
+	}()
+
 }
 
 func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {

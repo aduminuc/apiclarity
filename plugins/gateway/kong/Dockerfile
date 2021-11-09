@@ -2,6 +2,8 @@ FROM golang:1.16.6-alpine AS builder
 
 RUN apk add --update --no-cache gcc g++
 
+ARG WORKING_DIR
+
 WORKDIR /plugins
 COPY plugins/api ./api
 
