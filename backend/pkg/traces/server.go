@@ -81,20 +81,12 @@ func (s *HTTPTracesServer) Stop() {
 }
 
 func (s *HTTPTracesServer) PostTelemetry(params operations.PostTelemetryParams) middleware.Responder {
-	log.Errorf("telemetry: %+v", params.Body)
-	log.Errorf("source address: %v", params.Body.SourceAddress)
-	if params.Body.Request == nil {
-		log.Errorf("request is empty")
-	} else {
-		log.Errorf("request : %v", params.Body.Request)
-	}
+	telemetry := getTelemetry(params.Body)
 
-	//telemetry := getTelemetry(params.Body)
-	//
-	//if err := s.traceHandleFunc(telemetry); err != nil {
-	//	// TODO handle error
-	//	log.Errorf("Error from trace handling func: %v", err)
-	//}
+	if err := s.traceHandleFunc(telemetry); err != nil {
+		// TODO handle error
+		log.Errorf("Error from trace handling func: %v", err)
+	}
 
 	return operations.NewPostTelemetryOK()
 }
@@ -137,36 +129,3 @@ func convertHeaders(headers []*models.Header) [][2]string {
 	}
 	return ret
 }
-
-//
-//func readHTTPTraceBodyData(req *http.Request) (*spec.SCNTelemetry, error) {
-//	decoder := json.NewDecoder(req.Body)
-//	var bodyData *spec.SCNTelemetry
-//	err := decoder.Decode(&bodyData)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to decode trace: %v", err)
-//	}
-//
-//	return bodyData, nil
-//}
-//
-//func (s *HTTPTracesServer) httpTracesHandler(w http.ResponseWriter, r *http.Request) {
-//	trace, err := readHTTPTraceBodyData(r)
-//	if err != nil || trace == nil {
-//		log.Errorf("Invalid trace. err=%v, trace=%+s", err, r.Body)
-//		w.WriteHeader(http.StatusBadRequest)
-//		return
-//	}
-//
-//	traceB, _ := json.Marshal(trace)
-//	log.Infof("Trace was received: %s", traceB)
-//	err = s.traceHandleFunc(trace)
-//	if err != nil {
-//		log.Errorf("Failed to handle trace. err=%v", err)
-//		w.WriteHeader(http.StatusBadRequest)
-//		return
-//	}
-//
-//	log.Infof("Trace was handled successfully")
-//	w.WriteHeader(http.StatusAccepted)
-//}

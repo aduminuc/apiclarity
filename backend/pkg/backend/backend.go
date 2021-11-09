@@ -136,6 +136,11 @@ func Run() {
 	tracesServer.Start(errChan)
 	defer tracesServer.Stop()
 
+	wasmTracesServer := traces.CreateWasmHTTPTracesServer(config.HTTPWasmTracesPort, backend.handleHTTPTrace)
+	wasmTracesServer.Start(errChan)
+	defer wasmTracesServer.Stop()
+
+
 	backend.startStateBackup(globalCtx)
 
 	healthServer.SetIsReady(true)

@@ -65,7 +65,7 @@ docker-backend: ## Build Docker image
 	docker build --build-arg VERSION=${VERSION} \
 		--build-arg BUILD_TIMESTAMP=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		--build-arg COMMIT_HASH=$(shell git rev-parse HEAD) \
-		-t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+		-t erezfish/apiclarity:1.15 .
 
 .PHONY: docker-kong
 docker-kong: ## Build Docker image

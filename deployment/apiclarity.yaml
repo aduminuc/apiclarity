@@ -18,6 +18,10 @@ spec:
       port: 9000
       protocol: TCP
       targetPort: 9000
+    - name: wasm-trace-server
+      port: 9001
+      protocol: TCP
+      targetPort: 9001
     - name: backend
       port: 8080
       protocol: TCP
@@ -191,7 +195,7 @@ spec:
             runAsUser: 1001
       containers:
         - name: apiclarity
-          image: erezfish/apiclarity:1.14
+          image: erezfish/apiclarity:1.15
           args:
             - run
           env:
