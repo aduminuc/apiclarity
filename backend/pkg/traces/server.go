@@ -49,7 +49,6 @@ func CreateHTTPTracesServer(port int, traceHandleFunc HandleTraceFunc) (*HTTPTra
 	})
 
 	server := restapi.NewServer(api)
-	//defer func() { _ = server.Shutdown() }()
 
 	server.ConfigureFlags()
 	server.ConfigureAPI()
@@ -57,10 +56,6 @@ func CreateHTTPTracesServer(port int, traceHandleFunc HandleTraceFunc) (*HTTPTra
 	server.Port = port
 	s.server = server
 	s.traceHandleFunc = traceHandleFunc
-
-	//if err := server.Serve(); err != nil {
-	//	log.Fatalln(err)
-	//}
 
 	return s, nil
 }
@@ -86,12 +81,20 @@ func (s *HTTPTracesServer) Stop() {
 }
 
 func (s *HTTPTracesServer) PostTelemetry(params operations.PostTelemetryParams) middleware.Responder {
-	telemetry := getTelemetry(params.Body)
-
-	if err := s.traceHandleFunc(telemetry); err != nil {
-		// TODO handle error
-		log.Errorf("Error from trace handling func: %v", err)
+	log.Errorf("telemetry: %+v", params.Body)
+	log.Errorf("source address: %v", params.Body.SourceAddress)
+	if params.Body.Request == nil {
+		log.Errorf("request is empty")
+	} else {
+		log.Errorf("request : %v", params.Body.Request)
 	}
+
+	//telemetry := getTelemetry(params.Body)
+	//
+	//if err := s.traceHandleFunc(telemetry); err != nil {
+	//	// TODO handle error
+	//	log.Errorf("Error from trace handling func: %v", err)
+	//}
 
 	return operations.NewPostTelemetryOK()
 }
