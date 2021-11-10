@@ -80,6 +80,7 @@ definitions:
           $ref: '#/definitions/Header'
       body:
         type: 'string'
+        format: 'byte'
       TruncatedBody:
         type: 'boolean'
 

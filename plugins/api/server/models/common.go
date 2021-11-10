@@ -23,7 +23,8 @@ type Common struct {
 	TruncatedBody bool `json:"TruncatedBody,omitempty"`
 
 	// body
-	Body string `json:"body,omitempty"`
+	// Format: byte
+	Body strfmt.Base64 `json:"body,omitempty"`
 
 	// headers
 	Headers []*Header `json:"headers"`

@@ -28,7 +28,6 @@ import (
 const (
 	BackendRestPort            = "BACKEND_REST_PORT"
 	HTTPTracesPort             = "HTTP_TRACES_PORT"
-	HTTPWasmTracesPort             = "HTTP_WASM_TRACES_PORT"
 	HealthCheckAddress         = "HEALTH_CHECK_ADDRESS"
 	StateBackupIntervalSec     = "STATE_BACKUP_INTERVAL_SEC"
 	DatabaseCleanerIntervalSec = "DATABASE_CLEANER_INTERVAL_SEC"
@@ -71,7 +70,6 @@ func LoadConfig() (*Config, error) {
 
 	config.BackendRestPort = viper.GetInt(BackendRestPort)
 	config.HTTPTracesPort = viper.GetInt(HTTPTracesPort)
-	config.HTTPWasmTracesPort = viper.GetInt(HTTPWasmTracesPort)
 	config.HealthCheckAddress = viper.GetString(HealthCheckAddress)
 	config.StateBackupIntervalSec = viper.GetInt(StateBackupIntervalSec)
 	config.DatabaseCleanerIntervalSec = viper.GetInt(DatabaseCleanerIntervalSec)

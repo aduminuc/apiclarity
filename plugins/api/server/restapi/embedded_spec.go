@@ -79,7 +79,8 @@ func init() {
           "type": "boolean"
         },
         "body": {
-          "type": "string"
+          "type": "string",
+          "format": "byte"
         },
         "headers": {
           "type": "array",
@@ -250,7 +251,8 @@ func init() {
           "type": "boolean"
         },
         "body": {
-          "type": "string"
+          "type": "string",
+          "format": "byte"
         },
         "headers": {
           "type": "array",
