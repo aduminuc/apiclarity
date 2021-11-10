@@ -30,12 +30,12 @@ import (
 )
 
 // TODO:
-// check that wasm still working! - opened a separate server for the wasm
+// check that wasm still working!
 // pass the host to Config - not sure I can do this
 // Send http call async
 // Create a Makefile for kong
 // Run kong Makefile from APIClarity Makefile
-// Find out how to get destination address (and identify the service as internal)
+// Find out how to get destination address (and identify the service as internal) - no need
 // Change image of init container to be the pushed image from ghcr registry - changed
 // Create a README
 // add debug logs
@@ -70,7 +70,6 @@ func (conf Config) Response(kong *pdk.PDK) {
 			_ = kong.Log.Err(fmt.Sprintf("Failed to post telemetry : %v", err))
 		}
 	}()
-
 }
 
 func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
@@ -133,12 +132,12 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 	}
 
 	telemetry := models.Telemetry{
-		DestinationAddress:   "10.116.193.79:" + strconv.Itoa(destPort), // TODO not sure we have destination ip
+		DestinationAddress:   ":" + strconv.Itoa(destPort), // TODO not sure we have destination ip
 		DestinationNamespace: "",
 		Request: &models.Request{
 			Common: &models.Common{
 				TruncatedBody: false,
-				Body:          reqBody,
+				Body:          strfmt.Base64(reqBody),
 				Headers:       createHeaders(reqHeaders),
 				Version:       fmt.Sprintf("%f", version),
 			},
@@ -150,7 +149,7 @@ func createTelemetry(kong *pdk.PDK) (*models.Telemetry, error) {
 		Response: &models.Response{
 			Common: &models.Common{
 				TruncatedBody: false,
-				Body:          resBody,
+				Body:          strfmt.Base64(resBody),
 				Headers:       createHeaders(resHeaders),
 				Version:       fmt.Sprintf("%f", version),
 			},

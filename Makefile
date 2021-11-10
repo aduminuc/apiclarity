@@ -7,11 +7,9 @@ SHELL=/bin/bash
 
 # Project variables
 BINARY_NAME ?= apiclarity
-KONG_BINARY_NAME ?= kong
 DOCKER_REGISTRY ?= ghcr.io/apiclarity
 VERSION ?= $(shell git rev-parse HEAD)
 DOCKER_IMAGE ?= $(DOCKER_REGISTRY)/$(BINARY_NAME)
-KONG_DOCKER_IMAGE ?= $(DOCKER_REGISTRY)/$(KONG_BINARY_NAME)
 DOCKER_TAG ?= ${VERSION}
 
 # Dependency versions
@@ -32,9 +30,6 @@ ui: ## Build UI
 	@(echo "Building UI ..." )
 	@(cd ui; npm i ; npm run build; )
 	@ls -l ui/build  
-
-.PHONY: build
-build: backend
 
 .PHONY: backend
 backend: ## Build Backend
@@ -57,36 +52,29 @@ api: ## Generating API code
 	@(cd api; ./generate.sh)
 
 .PHONY: docker
-docker: docker-backend docker-kong
-
-.PHONY: docker-backend
-docker-backend: ## Build Docker image
+docker: ## Build Docker image
 	@(echo "Building docker image ..." )
 	docker build --build-arg VERSION=${VERSION} \
 		--build-arg BUILD_TIMESTAMP=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ") \
 		--build-arg COMMIT_HASH=$(shell git rev-parse HEAD) \
-		-t erezfish/apiclarity:1.15 .
-
-.PHONY: docker-kong
-docker-kong: ## Build Docker image
-	@(echo "Building kong docker image ..." )
-	docker build --file=./plugins/gateway/kong/Dockerfile -t ${KONG_DOCKER_IMAGE}:${DOCKER_TAG} .
+		-t ${DOCKER_IMAGE}:${DOCKER_TAG} .
 
 .PHONY: push-docker
 push-docker: docker ## Build and Push Docker image
 	@echo "Publishing Docker image ..."
 	docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
 
+.PHONY: docker-plugins
+docker-plugins: ## Build plugins Docker image
+	$(MAKE) docker -C plugins
+
+.PHONY: push-docker-plugins
+push-docker-plugins: docker-plugins ## Build and Push Docker image
+	$(MAKE) push-docker -C plugins
+
 .PHONY: test
-test: test-backend test-kong
-
-.PHONY: test-backend
-test-backend: ## Run Unit Tests
+test: ## Run Unit Tests
 	@(cd backend && go test ./pkg/...)
-
-.PHONY: test-kong
-test-kong: ## Run Unit Tests
-	@(cd plugins/gateway/kong && go test ./...)
 
 .PHONY: clean
 clean: clean-ui clean-backend ## Clean all build artifacts
@@ -94,8 +82,6 @@ clean: clean-ui clean-backend ## Clean all build artifacts
 .PHONY: clean-ui
 clean-ui: 
 	@(rm -rf ui/build ; echo "UI cleanup done" )
-
-clean-plugins:
 
 .PHONY: clean-backend
 clean-backend: 
@@ -109,15 +95,8 @@ bin/golangci-lint-${GOLANGCI_VERSION}:
 	@mv bin/golangci-lint $@
 
 .PHONY: lint
-lint: lint-backend lint-kong
-
-.PHONY: lint-backend
-lint-backend: bin/golangci-lint ## Run linter
+lint: bin/golangci-lint ## Run linter
 	cd backend && ../bin/golangci-lint run
-
-.PHONY: lint-kong
-lint-kong: bin/golangci-lint
-	cd plugins/gateway/kong && ../../../bin/golangci-lint run
 
 .PHONY: fix
 fix: bin/golangci-lint ## Fix lint violations
@@ -131,15 +110,7 @@ bin/licensei-${LICENSEI_VERSION}:
 	@mv bin/licensei $@
 
 .PHONY: license-check
-license-check: license-check-backend license-check-kong
-
-.PHONY: license-check-kong
-license-check-kong: bin/licensei ## Run license check
-	bin/licensei header
-	cd plugins/gateway/kong && ../../../bin/licensei check --config=../.licensei.toml
-
-.PHONY: license-check-backend
-license-check-backend: bin/licensei ## Run license check
+license-check: bin/licensei ## Run license check
 	bin/licensei header
 	cd backend && ../bin/licensei check --config=../.licensei.toml
 

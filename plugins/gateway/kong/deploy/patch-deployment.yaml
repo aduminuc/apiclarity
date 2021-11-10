@@ -21,9 +21,9 @@ spec:
       initContainers:
       - command:
         - cp
-        - /usr/local/bin/kong-plugin
+        - /kong-plugin
         - /plugin/.
-        image: erezfish/kong-plugin:1.2
+        image: ghcr.io/apiclarity/kong-plugin:latest
         imagePullPolicy: Always
         name: securecn-kong-plugin-injector
         volumeMounts:
